@@ -1,6 +1,6 @@
 {
   "name": "@react-querybuilder/grafeo",
-  "version": "0.5.43",
+  "version": "0.5.44",
   "description": "Node.js/TypeScript bindings for Grafeo - a high-performance embeddable graph database (react-querybuilder fork, see README)",
   "main": "index.js",
   "types": "index.d.ts",
@@ -18,10 +18,10 @@
     "index.d.ts"
   ],
   "optionalDependencies": {
-    "@react-querybuilder/grafeo-darwin-x64": "0.5.43",
-    "@react-querybuilder/grafeo-darwin-arm64": "0.5.43",
-    "@react-querybuilder/grafeo-linux-x64-gnu": "0.5.43",
-    "@react-querybuilder/grafeo-win32-x64-msvc": "0.5.43"
+    "@react-querybuilder/grafeo-darwin-x64": "0.5.44",
+    "@react-querybuilder/grafeo-darwin-arm64": "0.5.44",
+    "@react-querybuilder/grafeo-linux-x64-gnu": "0.5.44",
+    "@react-querybuilder/grafeo-win32-x64-msvc": "0.5.44"
   },
   "keywords": [
     "graph",
