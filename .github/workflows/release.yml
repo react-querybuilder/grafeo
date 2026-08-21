@@ -59,6 +59,10 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # rust-toolchain.toml pins the channel; add target to that toolchain, not stable
+      - name: Install target for pinned toolchain
+        run: rustup target add ${{ matrix.target }}
+
       - name: Install dependencies
         working-directory: crates/bindings/node
         run: npm install
