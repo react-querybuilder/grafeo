@@ -2,6 +2,54 @@
 
 All notable changes to Grafeo, for future reference (and enjoyment).
 
+## Unreleased
+
+Gremlin anonymous traversals (`__`), plus two adjacent translator correctness fixes surfaced while scoping them.
+
+### Added
+
+- **Gremlin anonymous traversal (`__`) support**: `TokenKind::Anon` in the lexer, and an optional `__.` prefix accepted at the top of `parse_inner_steps` / `parse_bare_traversal`. One insertion point covers every sub-traversal construct (`and`, `or`, `not`, `where`, `filter`, `choose`, `union`, `coalesce`, `optional`, `sideEffect`, `repeat`, `until`, `by(traversal)`), so `.or(__.has('a', 1), __.has('b', 2))` and `from(__.V()...)` now parse. The prefix is optional: bare and prefixed args mix freely and every existing test passes unchanged.
+- **`anonymous_traversal.gtest` spec file** (`tests/spec/lpg/gremlin/`): `__` inside `or`/`and`/`not`, mixed prefixed/bare args, nested compounds, `.where(__.out('KNOWS'))`, and the `not()` null-retention case. New file rather than edits to existing ones, to keep the upstream merge surface small.
+
+### Changed
+
+- **Gremlin `not()` is null-safe**: `NOT(p)` widened to `NOT(p) OR p IS NULL`, matching TinkerPop, where a traverser missing the property is retained. Previously SQL three-valued logic made `NOT NULL` evaluate to `NULL` and silently dropped those rows. Costs a second evaluation of `p`; reduces to plain `NOT(p)` whenever `p` is non-null.
+- **`fold_predicates` helper** in the Gremlin translator replaces the fold duplicated across the `Step::And` / `Step::Or` arms. Fold direction preserved, so plan shapes are unchanged.
+
+### Fixed
+
+- **Nested Gremlin compound groups were silently dropped**: `steps_to_predicate` handled only `Has`, `HasLabel`, `HasNot`, `HasId`, and `Out`/`In`/`Both`, falling through a wildcard for everything else. `.or(__.and(__.has(a), __.has(b)), __.has(c))` parsed and translated to just `has(c)` — wrong rows, no error. The function now recurses into `And`, `Or`, `Not`, and `Where(Traversal)`. Pre-existing bug, but `__` is what makes nested groups reachable in practice.
+
+### Known limitations
+
+- `steps_to_predicate` still ignores unhandled sub-traversal steps via a wildcard arm rather than erroring. Turning it into an error is a broader behavioral change; deliberately out of scope.
+- Multi-argument `not()` (`.not(__.has(a), __.has(b))`) remains a parse error. TinkerPop's `not()` takes exactly one traversal; callers should emit `.not(__.and(...))`.
+
+## [0.5.43] - 2026-08-20
+
+First release of the `react-querybuilder/grafeo` fork. Published to npm as `@react-querybuilder/grafeo` (plus four platform packages) for use as a test-time dependency in [react-querybuilder](https://github.com/react-querybuilder/react-querybuilder), where it executes `formatQuery` output against a real engine. No Rust crate changes beyond the Gremlin feature below; the workspace `Cargo.toml` version deliberately stays at `0.5.42` to keep upstream merges conflict-free.
+
+### Added
+
+- **Gremlin negated text predicates**: `notContaining`, `notStartingWith`, `notEndingWith` in the Gremlin lexer, AST, parser, and translator, with engine tests and a `predicates_extended.gtest` spec file. Submitted upstream as [#340](https://github.com/GrafeoDB/grafeo/pull/340).
+
+### Changed
+
+- **npm package renamed** `@grafeo-db/js` → `@react-querybuilder/grafeo`, with `repository`/`bugs`/`homepage` repointed at the fork and `publishConfig.access: public`. `napi.binaryName` stays `grafeo`, so `.node` filenames are unchanged. `index.js` / `index.d.ts` regenerated rather than hand-edited.
+- **Platform targets narrowed to four**: `darwin-x64`, `darwin-arm64`, `linux-x64-gnu`, `win32-x64-msvc`. `linux-arm64-gnu` and `linux-arm64-musl` dropped, along with the zig/cross-compile machinery they needed. `x86_64-apple-darwin` cross-compiles from `macos-latest` since `macos-13` is retired.
+- **CI pruned to what the fork ships**: `release.yml` down to create-release / build-node-native / publish-npm; `ci.yml` down to fmt, clippy, a scoped `grafeo-adapters` + `grafeo-engine` test run, and a Node build+vitest job. Removed the docs, PyPI, pub.dev, grafeo-web, and CodSpeed workflows plus `FUNDING.yml` and `CODEOWNERS`. `dependabot.yml` narrowed to cargo.
+- **npm publish uses trusted publishing (OIDC)** rather than a token: `permissions: id-token: write`, no `NODE_AUTH_TOKEN`, provenance generated automatically. `0.5.43` itself was bootstrapped by a manual publish of the CI-built artifacts, since a trusted publisher can only be configured on a package that already exists — so the workflow path is first exercised by `0.5.44`.
+- **Removed `|| true` / `continue-on-error` from the publish steps** so failures surface instead of producing a green run with nothing published.
+- **`--features full` retained** for the Node binding. Trimming to `lpg,languages` measured only 8.8% smaller (11.82 MB → 10.78 MB) and doesn't compile without force-enabling `arrow-export`, because `#[napi]` on an impl block ignores `#[cfg]` on its methods and emits a callback registration for the gated `to_arrow_ipc`.
+
+### Documentation
+
+- **Fork notice** prepended to `README.md`: why the fork exists, what is published and what isn't, and links back to `GrafeoDB/grafeo`. `LICENSE` (Apache-2.0), `NOTICE`, and the original author attribution are untouched.
+
+### Not published
+
+The WASM, Python, C, and Dart bindings, the CLI, and the docs site are all still in-tree but are no longer built or released. They're left in place deliberately: deleting them would guarantee conflicts on every future upstream sync, and they cost nothing while no workflow references them.
+
 ## [0.5.42] - 2026-05-04
 
 End-to-end tiered storage: section data (LPG, RDF Ring, vector topology) can spill to mmap-backed disk under memory pressure or explicit configuration, with per-section tier overrides, introspection, and reload. Plus per-block columnar zone maps for selective range scans, paged HNSW topology, packed RDF Ring on disk, a WAL overlay for mutating mmap'd compact stores and a streaming top-K operator that fuses `ORDER BY ... LIMIT` into a single bounded-heap pass.
