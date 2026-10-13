@@ -1,6 +1,6 @@
 {
   "name": "@react-querybuilder/grafeo-win32-x64-msvc",
-  "version": "0.5.44",
+  "version": "0.5.44-rqb.0",
   "os": [
     "win32"
   ],

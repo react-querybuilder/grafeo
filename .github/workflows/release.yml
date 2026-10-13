@@ -120,10 +120,10 @@ jobs:
           for dir in npm/*/; do
             if ls "$dir"*.node 1>/dev/null 2>&1; then
               echo "Publishing $(basename "$dir")..."
-              (cd "$dir" && npm publish --access public)
+              (cd "$dir" && npm publish --access public --tag latest)
             fi
           done
 
       - name: Publish @react-querybuilder/grafeo
         working-directory: crates/bindings/node
-        run: npm publish --access public --ignore-scripts
+        run: npm publish --access public --tag latest --ignore-scripts
